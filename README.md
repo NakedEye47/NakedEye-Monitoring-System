@@ -6,7 +6,9 @@
 
 NakedEye is a self-built, full-stack monitoring and job search intelligence platform. It combines real-time portfolio visitor tracking, uptime monitoring, ATS detection, AI-powered resume analysis, and a complete job application pipeline — all in one dashboard.
 
-![NakedEye Demo Dashboard](https://nakedeye47.github.io/NakedEye-Monitoring-System/)
+## Demo
+
+[![NakedEye Dashboard](./app/static/favicon.svg)](https://nakedeye47.github.io/NakedEye-Monitoring-System/)
 
 ---
 
