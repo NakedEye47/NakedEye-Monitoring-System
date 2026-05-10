@@ -8,9 +8,7 @@ NakedEye is a self-built, full-stack monitoring and job search intelligence plat
 
 ## Demo
 
-<a href="https://nakedeye47.github.io/NakedEye-Monitoring-System/" target="_blank">
-  <img src="./app/static/favicon.svg" alt="NakedEye Dashboard" />
-</a>
+[![NakedEye Dashboard](./app/static/favicon.svg)](https://nakedeye47.github.io/NakedEye-Monitoring-System/)
 
 ---
 
@@ -136,28 +134,6 @@ nakedeye/
 - [Docker Compose](https://docs.docker.com/compose/)
 - [ngrok](https://ngrok.com/) (for public URL)
 - Git
-
----
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/nakedeye.git
-cd nakedeye
-```
-
----
-
-### 2. Configure Environment Variables
-
-Copy the example environment file:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your configuration:
-
 ```env
 # Database
 DATABASE_URL=postgresql+asyncpg://nakedeye:secret@db:5432/nakedeye
