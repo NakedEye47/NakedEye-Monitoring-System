@@ -8,7 +8,9 @@ NakedEye is a self-built, full-stack monitoring and job search intelligence plat
 
 ## Demo
 
-[![NakedEye Dashboard](./app/static/favicon.svg)](https://nakedeye47.github.io/NakedEye-Monitoring-System/)
+<a href="https://nakedeye47.github.io/NakedEye-Monitoring-System/" target="_blank">
+  <img src="./app/static/favicon.svg" alt="NakedEye Dashboard" />
+</a>
 
 ---
 
