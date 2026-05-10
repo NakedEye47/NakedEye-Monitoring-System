@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NakedEye — Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --black:     #080810;
+    --black2:    #0e0e1a;
+    --black3:    #14141f;
+    --black4:    #1a1a2a;
+    --purple:    #7c3aed;
+    --purple2:   #9d5cf6;
+    --purple3:   #c4a3f8;
+    --purple4:   #1e103a;
+    --gold:      #b8d4c0;
+    --gold2:     #8fbfa0;
+    --gold3:     #d4ead9;
+    --gold4:     #1a2b1e;
+    --text:      #e8e8f0;
+    --text2:     #9090a8;
+    --text3:     #4a4a62;
+    --up:        #4ade80;
+    --down:      #f87171;
+    --warn:      #fbbf24;
+    --border:    rgba(124,58,237,0.18);
+    --border2:   rgba(184,212,192,0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── grid noise bg ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── ambient glows ── */
+  .glow-purple {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);
+    top: -200px; left: -100px;
+    pointer-events: none; z-index: 0;
+  }
+  .glow-gold {
+    position: fixed;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(143,191,160,0.07) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── layout ── */
+  .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* ── sidebar ── */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: rgba(14,14,26,0.8);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-eye {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--gold2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .brand-eye::after {
+    content: '';
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--gold2);
+    box-shadow: 0 0 8px var(--gold2);
+  }
+  .brand-name {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  .brand-name span { color: var(--gold2); }
+  .brand-tag {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-section-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    padding: 0 12px;
+    margin: 16px 0 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--black4); color: var(--text); }
+  .nav-item.active {
+    background: rgba(124,58,237,0.15);
+    color: var(--purple3);
+    border-color: rgba(124,58,237,0.3);
+  }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-dot { background: var(--purple2); opacity: 1; box-shadow: 0 0 6px var(--purple2); }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--up);
+    font-family: 'DM Mono', monospace;
+  }
+  .status-pill-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--up);
+    box-shadow: 0 0 6px var(--up);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── main ── */
+  .main { flex: 1; padding: 32px 36px; overflow-y: auto; }
+
+  /* ── topbar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 36px;
+  }
+  .page-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .page-title span { color: var(--gold2); }
+  .page-sub {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-top: 3px;
+    letter-spacing: 0.05em;
+  }
+  .topbar-actions { display: flex; gap: 10px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .btn-ghost:hover { border-color: var(--purple); color: var(--purple3); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple) 0%, #5b21b6 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,0.45); }
+
+  /* ── stat cards ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--black2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(124,58,237,0.4); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--purple), transparent);
+  }
+  .stat-card.gold::before { background: linear-gradient(90deg, var(--gold2), transparent); }
+  .stat-card.up-card::before { background: linear-gradient(90deg, var(--up), transparent); }
+  .stat-card.down-card::before { background: linear-gradient(90deg, var(--down), transparent); }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-value.purple { color: var(--purple3); }
+  .stat-value.gold { color: var(--gold2); }
+  .stat-value.up { color: var(--up); }
+  .stat-value.down { color: var(--down); }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── section header ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+  .section-title span {
+    display: inline-block;
+    width: 20px; height: 2px;
+    background: var(--purple2);
+    vertical-align: middle;
+    margin-right: 8px;
+    border-radius: 2px;
+  }
+
+  /* ── monitor table ── */
+  .monitor-table {
+    background: var(--black2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .table-head {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--black3);
+  }
+  .th {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+  .monitor-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(124,58,237,0.06);
+    align-items: center;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .monitor-row:last-child { border-bottom: none; }
+  .monitor-row:hover { background: rgba(124,58,237,0.05); }
+
+  .monitor-name-wrap { display: flex; align-items: center; gap: 12px; }
+  .monitor-indicator {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .monitor-indicator.up { background: var(--up); box-shadow: 0 0 8px rgba(74,222,128,0.5); animation: pulse 2s infinite; }
+  .monitor-indicator.down { background: var(--down); box-shadow: 0 0 8px rgba(248,113,113,0.5); }
+  .monitor-indicator.warn { background: var(--warn); box-shadow: 0 0 8px rgba(251,191,36,0.5); }
+
+  .monitor-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .monitor-url { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .badge-up { background: rgba(74,222,128,0.1); color: var(--up); border: 1px solid rgba(74,222,128,0.2); }
+  .badge-down { background: rgba(248,113,113,0.1); color: var(--down); border: 1px solid rgba(248,113,113,0.2); }
+  .badge-warn { background: rgba(251,191,36,0.1); color: var(--warn); border: 1px solid rgba(251,191,36,0.2); }
+
+  .td { font-size: 13px; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .td.good { color: var(--up); }
+  .td.bad { color: var(--down); }
+
+  .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .icon-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--purple); color: var(--purple3); background: rgba(124,58,237,0.1); }
+
+  /* ── uptime bars ── */
+  .uptime-bar {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 20px;
+  }
+  .uptime-seg {
+    width: 4px;
+    border-radius: 2px;
+    background: var(--up);
+    opacity: 0.7;
+  }
+  .uptime-seg.down { background: var(--down); }
+
+  /* ── sparkline panel ── */
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .panel {
+    background: var(--black2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 16px;
+  }
+
+  .incident-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(124,58,237,0.07);
+  }
+  .incident-item:last-child { border-bottom: none; }
+  .incident-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .incident-icon.down { background: rgba(248,113,113,0.12); color: var(--down); }
+  .incident-icon.up { background: rgba(74,222,128,0.12); color: var(--up); }
+  .incident-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .incident-detail { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  /* ── add monitor modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(8,8,16,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--black2);
+    border: 1px solid rgba(124,58,237,0.35);
+    border-radius: 18px;
+    width: 480px;
+    padding: 32px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1);
+    transform: translateY(16px);
+    transition: transform 0.2s;
+    position: relative;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header { margin-bottom: 24px; }
+  .modal-title { font-size: 20px; font-weight: 800; }
+  .modal-title span { color: var(--gold2); }
+  .modal-sub { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 7px;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--black3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  .close-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 18px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .close-btn:hover { color: var(--text); background: var(--black4); }
+
+  /* ── toast ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--black2);
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--up);
+    font-family: 'DM Mono', monospace;
+    z-index: 200;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--black4); border-radius: 2px; }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .stat-card { animation: fadeIn 0.4s ease both; }
+  .stat-card:nth-child(2) { animation-delay: 0.05s; }
+  .stat-card:nth-child(3) { animation-delay: 0.1s; }
+  .stat-card:nth-child(4) { animation-delay: 0.15s; }
+</style>
+</head>
+<body>
+
+<div class="glow-purple"></div>
+<div class="glow-gold"></div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-eye"></div>
+      <div class="brand-name">Naked<span>Eye</span></div>
+      <div class="brand-tag">v1.0.0 · monitoring</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active"><span class="nav-dot"></span> Dashboard</div>
+      <div class="nav-item"><span class="nav-dot"></span> Monitors</div>
+      <div class="nav-item"><span class="nav-dot"></span> Incidents</div>
+
+      <div class="nav-section-label">Analytics</div>
+      <div class="nav-item"><span class="nav-dot"></span> Uptime Report</div>
+      <div class="nav-item"><span class="nav-dot"></span> Response Times</div>
+
+      <div class="nav-section-label">System</div>
+      <div class="nav-item"><span class="nav-dot"></span> Status Page</div>
+      <div class="nav-item"><span class="nav-dot"></span> Notifications</div>
+      <div class="nav-item"><span class="nav-dot"></span> Settings</div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-pill">
+        <span class="status-pill-dot"></span>
+        All systems OK
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Dashboard <span>·</span> Overview</div>
+        <div class="page-sub">LAST UPDATED · <span id="last-update">--:--:--</span></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="refreshAll()">↻ Refresh</button>
+        <button class="btn btn-primary" onclick="openModal()">+ Add Monitor</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Monitors</div>
+        <div class="stat-value purple" id="total-count">0</div>
+        <div class="stat-sub">active endpoints</div>
+      </div>
+      <div class="stat-card up-card">
+        <div class="stat-label">Online</div>
+        <div class="stat-value up" id="up-count">0</div>
+        <div class="stat-sub">responding normally</div>
+      </div>
+      <div class="stat-card down-card">
+        <div class="stat-label">Offline</div>
+        <div class="stat-value down" id="down-count">0</div>
+        <div class="stat-sub">needs attention</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">Avg Response</div>
+        <div class="stat-value gold" id="avg-response">—</div>
+        <div class="stat-sub">milliseconds</div>
+      </div>
+    </div>
+
+    <!-- MONITORS TABLE -->
+    <div class="section-header">
+      <div class="section-title"><span></span>Active Monitors</div>
+    </div>
+
+    <div class="monitor-table">
+      <div class="table-head">
+        <div class="th">Monitor</div>
+        <div class="th">Status</div>
+        <div class="th">Response</div>
+        <div class="th">Uptime</div>
+        <div class="th">SSL</div>
+        <div class="th"></div>
+      </div>
+      <div id="monitor-list">
+        <div style="padding:32px;text-align:center;color:var(--text3);font-family:'DM Mono',monospace;font-size:12px;">
+          No monitors yet — click + Add Monitor
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANELS -->
+    <div class="bottom-grid">
+      <div class="panel">
+        <div class="panel-title">Recent Incidents</div>
+        <div id="incident-list">
+          <div style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px;">No incidents recorded</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Quick Add</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Monitor a new endpoint instantly.</div>
+        <div class="form-group">
+          <label class="form-label">URL</label>
+          <input class="form-input" id="quick-url" placeholder="https://yoursite.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" id="quick-name" placeholder="My Site"/>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="quickAdd()">Add & Start Monitoring</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <div class="modal-header">
+      <div class="modal-title">Add <span>Monitor</span></div>
+      <div class="modal-sub">configure a new endpoint to watch</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Display Name</label>
+      <input class="form-input" id="m-name" placeholder="My Website"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">URL</label>
+      <input class="form-input" id="m-url" placeholder="https://example.com"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Check Interval (sec)</label>
+        <input class="form-input" id="m-interval" type="number" value="60"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Timeout (sec)</label>
+        <input class="form-input" id="m-timeout" type="number" value="10"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Keyword Check (optional)</label>
+      <input class="form-input" id="m-keyword" placeholder="Expected text in response"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addMonitor()">Create Monitor</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8000/api';
+let monitors = [];
+
+function updateClock() {
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+}
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)';
+  t.style.color = isError ? 'var(--down)' : 'var(--up)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function renderUptimeBar() {
+  const segs = Array.from({length: 30}, (_, i) => {
+    const isDown = Math.random() < 0.05;
+    return `<div class="uptime-seg ${isDown ? 'down' : ''}" style="height:${isDown ? 8 : (12 + Math.random()*8)}px"></div>`;
+  }).join('');
+  return `<div class="uptime-bar">${segs}</div>`;
+}
+
+async function loadMonitors() {
+  try {
+    const res = await fetch(`${API}/monitors/`);
+    monitors = await res.json();
+    renderMonitors();
+    updateStats();
+    updateClock();
+  } catch(e) {
+    console.error('Cannot reach NakedEye API', e);
+  }
+}
+
+function renderMonitors() {
+  const list = document.getElementById('monitor-list');
+  if (!monitors.length) {
+    list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text3);font-family:'DM Mono',monospace;font-size:12px;">No monitors yet — click + Add Monitor</div>`;
+    return;
+  }
+
+  list.innerHTML = monitors.map(m => {
+    const status = m.last_status || 'unknown';
+    const statusClass = status === 'up' ? 'up' : status === 'down' ? 'down' : 'warn';
+    const badgeClass = `badge-${statusClass}`;
+    const responseMs = m.last_response_ms ? `${m.last_response_ms}ms` : '—';
+    const ssl = m.ssl_days_remaining != null ? `${m.ssl_days_remaining}d` : '—';
+    const sslClass = m.ssl_days_remaining != null && m.ssl_days_remaining < 14 ? 'bad' : '';
+
+    return `
+    <div class="monitor-row">
+      <div class="monitor-name-wrap">
+        <div class="monitor-indicator ${statusClass}"></div>
+        <div>
+          <div class="monitor-name">${m.name}</div>
+          <div class="monitor-url">${m.url || ''}</div>
+        </div>
+      </div>
+      <div><span class="badge ${badgeClass}">${status.toUpperCase()}</span></div>
+      <div class="td ${statusClass === 'up' ? 'good' : ''}">${responseMs}</div>
+      <div>${renderUptimeBar()}</div>
+      <div class="td ${sslClass}">${ssl}</div>
+      <div class="row-actions">
+        <button class="icon-btn" title="Delete" onclick="deleteMonitor('${m.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  const up = monitors.filter(m => m.last_status === 'up').length;
+  const down = monitors.filter(m => m.last_status === 'down').length;
+  const responseTimes = monitors.filter(m => m.last_response_ms).map(m => m.last_response_ms);
+  const avg = responseTimes.length ? Math.round(responseTimes.reduce((a,b)=>a+b,0)/responseTimes.length) : null;
+
+  document.getElementById('total-count').textContent = monitors.length;
+  document.getElementById('up-count').textContent = up;
+  document.getElementById('down-count').textContent = down;
+  document.getElementById('avg-response').textContent = avg ? `${avg}` : '—';
+}
+
+async function addMonitor() {
+  const name = document.getElementById('m-name').value.trim();
+  const url = document.getElementById('m-url').value.trim();
+  const interval = parseInt(document.getElementById('m-interval').value) || 60;
+  const timeout = parseInt(document.getElementById('m-timeout').value) || 10;
+  const keyword = document.getElementById('m-keyword').value.trim() || null;
+
+  if (!name || !url) { showToast('Name and URL are required', true); return; }
+
+  try {
+    const res = await fetch(`${API}/monitors/`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, url, interval_seconds: interval, timeout_seconds: timeout, keyword})
+    });
+    if (!res.ok) throw new Error();
+    closeModal();
+    showToast(`✓ ${name} is now being monitored`);
+    ['m-name','m-url','m-keyword'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('m-interval').value = 60;
+    await loadMonitors();
+  } catch(e) {
+    showToast('Failed to add monitor', true);
+  }
+}
+
+async function quickAdd() {
+  const url = document.getElementById('quick-url').value.trim();
+  const name = document.getElementById('quick-name').value.trim() || url;
+  if (!url) { showToast('Please enter a URL', true); return; }
+  document.getElementById('m-name').value = name;
+  document.getElementById('m-url').value = url;
+  await addMonitor();
+  document.getElementById('quick-url').value = '';
+  document.getElementById('quick-name').value = '';
+}
+
+async function deleteMonitor(id) {
+  if (!confirm('Remove this monitor?')) return;
+  await fetch(`${API}/monitors/${id}`, {method: 'DELETE'});
+  showToast('Monitor removed');
+  await loadMonitors();
+}
+
+async function refreshAll() {
+  await loadMonitors();
+  showToast('✓ Refreshed');
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+loadMonitors();
+setInterval(loadMonitors, 30000);
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+</body>
+</html>

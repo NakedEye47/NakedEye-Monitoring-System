@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#080810"/>
+<title>NakedEye Public Status</title>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<style>
+  :root { --bg:#080810; --panel:#0e0e1a; --line:rgba(124,58,237,.2); --muted:#9090a8; --soft:#4a4a62; --text:#e8e8f0; --ok:#4ade80; --down:#f87171; --warn:#fbbf24; --accent:#8fbfa0; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:Arial,sans-serif; padding:24px; }
+  .wrap { width:min(860px,100%); margin:0 auto; }
+  header { padding:28px 0 22px; }
+  .brand { font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+  h1 { font-size:clamp(28px,7vw,48px); margin:0; line-height:1; }
+  .meta { color:var(--muted); margin-top:10px; font-size:14px; }
+  .overall { margin:24px 0; padding:20px; border:1px solid var(--line); border-radius:16px; background:var(--panel); display:flex; justify-content:space-between; gap:16px; align-items:center; }
+  .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; border:1px solid rgba(74,222,128,.25); color:var(--ok); background:rgba(74,222,128,.08); font-weight:700; }
+  .pill.down { color:var(--down); background:rgba(248,113,113,.08); border-color:rgba(248,113,113,.25); }
+  .dot { width:8px; height:8px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
+  .service { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:10px; display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; }
+  .name { font-weight:700; }
+  .sub { color:var(--soft); font-size:13px; margin-top:4px; }
+  .badge { color:var(--ok); font-weight:700; font-size:13px; }
+  .badge.down { color:var(--down); }
+  .badge.unknown { color:var(--warn); }
+  .empty { color:var(--muted); border:1px dashed var(--line); border-radius:12px; padding:20px; text-align:center; }
+  @media (max-width:620px) { body{padding:16px;} .overall{display:block;} .pill{margin-top:14px;} .service{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="brand">NakedEye Public Status</div>
+    <h1>System Status</h1>
+    <div class="meta" id="updated">Loading status...</div>
+  </header>
+  <section class="overall">
+    <div>
+      <div class="name">Current Availability</div>
+      <div class="sub" id="incident-count">Checking active incidents</div>
+    </div>
+    <div class="pill" id="overall-pill"><span class="dot"></span><span>Loading</span></div>
+  </section>
+  <section id="services"></section>
+</main>
+<script>
+async function loadStatus() {
+  const services = document.getElementById('services');
+  try {
+    const res = await fetch('/api/public/status', { cache: 'no-store' });
+    const data = await res.json();
+    const updated = new Date(data.updated_at).toLocaleString();
+    document.getElementById('updated').textContent = 'Updated ' + updated;
+    document.getElementById('incident-count').textContent = data.active_incidents ? data.active_incidents + ' active incident(s)' : 'No active incidents';
+    const pill = document.getElementById('overall-pill');
+    const degraded = data.overall !== 'operational';
+    pill.classList.toggle('down', degraded);
+    pill.querySelector('span:last-child').textContent = degraded ? 'Degraded' : 'Operational';
+    services.innerHTML = data.services.length ? data.services.map(service => {
+      const status = service.status || 'unknown';
+      const cls = status === 'down' ? 'down' : status === 'unknown' ? 'unknown' : '';
+      const checked = service.last_checked_at ? new Date(service.last_checked_at).toLocaleString() : 'Not checked yet';
+      const response = service.response_ms ? ' · ' + Math.round(service.response_ms) + ' ms' : '';
+      return '<div class="service"><div><div class="name">' + escapeHtml(service.name) + '</div><div class="sub">' + checked + response + '</div></div><div class="badge ' + cls + '">' + escapeHtml(status.toUpperCase()) + '</div></div>';
+    }).join('') : '<div class="empty">No public services configured yet.</div>';
+  } catch (err) {
+    services.innerHTML = '<div class="empty">Could not load public status.</div>';
+  }
+}
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+}
+loadStatus();
+setInterval(loadStatus, 30000);
+</script>
+</body>
+</html>
