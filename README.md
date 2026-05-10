@@ -1,5 +1,7 @@
 # 👁️ NakedEye — AI-Powered Job Search & Monitoring System
 
+> *"In a world full of blind spots — NakedEye gives you full visibility."* 👁️
+
 > **Nothing is hidden from the Naked Eye.**
 
 NakedEye is a self-built, full-stack monitoring and job search intelligence platform. It combines real-time portfolio visitor tracking, uptime monitoring, ATS detection, AI-powered resume analysis, and a complete job application pipeline — all in one dashboard.
@@ -437,7 +439,20 @@ docker compose restart api
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+© 2026 Alexander E. Sugian. All Rights Reserved.
+
+This project and its source code are made publicly available for **portfolio and demonstration purposes only.**
+
+You may:
+- ✅ View and inspect the source code
+- ✅ Reference the code for learning purposes
+
+You may NOT:
+- ❌ Copy, reproduce, or distribute this project
+- ❌ Use this code commercially or privately without written permission
+- ❌ Claim this project as your own
+
+For inquiries or permissions, contact: **alexander.s.dgreat@gmail.com**
 
 ---
 
